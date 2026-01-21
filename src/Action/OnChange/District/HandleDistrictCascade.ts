@@ -1,3 +1,5 @@
+import {v4 as uuidv4 } from 'uuid'
+
 interface CascadedEntity {
     entityName: string,
     lookupAttributeName: string,
@@ -54,7 +56,7 @@ export function HandleDistrictCascade(context: Xrm.Events.EventContext) {
         }
     ];
 
-    entities.forEach((entity, idx) => {
+    entities.forEach((entity) => {
         var fetchXML = GenerateFetchXML(entity, district.id);
         if (!fetchXML || fetchXML.trim() === "") {
             console.error("HandleDistrictCascade: fetchXML is empty or invalid");
@@ -65,7 +67,7 @@ export function HandleDistrictCascade(context: Xrm.Events.EventContext) {
             console.error(`HandleDistrictCascade: attribute ${entity.attributeName} not found on form`);
             return;
         }
-        const viewId = `00000000-0000-0000-0000-00000000000${idx+1}`;
+        const viewId = uuidv4();
         attribute.controls.forEach(control => {
             control.addCustomView(viewId, entity.entityName, entity.viewName, fetchXML, entity.layoutXML, true);
         });
