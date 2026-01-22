@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SUAPlugins/SUAPlugins.csproj" Id="e213bce4-f436-4f32-bd11-c80ba2cc3aa3" />
+  <Properties Name="CRMSolutionProperties">
+    <Property Name="SolutionIsBoundToCRM" Value="True" />
+  </Properties>
+</Solution>
