@@ -48,7 +48,7 @@ namespace SUAPlugins.Aeronautical
                 var requiresSupplemental = Utilities.GetValueOnUpdate<bool>(
                     target,
                     preImage,
-                    "sua_requiressupplemental"
+                    "sua_requiressupplementalrulemaking"
                 );
 
                 tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
