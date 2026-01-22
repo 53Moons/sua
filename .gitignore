@@ -1,2 +1,10 @@
 /dist
 /node_modules
+
+dist
+bin
+obj
+*.user
+
+.vs
+*.snk
