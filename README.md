@@ -38,7 +38,7 @@ export function handleAccountLoad(context: Xrm.Events.EventContext): void {
 // src/Account/OnChange/HandleNameChange.ts
 export function handleAccountNameChange(context: Xrm.Events.EventContext): void {
     const formContext = context.getFormContext();
-    const nameControl = formContext.getControl("name");
+    const nameControl = formContext.getControl('name');
     // Your logic here
 }
 ```
@@ -88,7 +88,7 @@ export class AccountManager {
     }
 
     public handleNameChange(): void {
-        const name = this.formContext.getAttribute("name")?.getValue();
+        const name = this.formContext.getAttribute('name')?.getValue();
         // Handle name change
     }
 
@@ -107,11 +107,13 @@ export function handleAccountLoad(context: Xrm.Events.EventContext): void {
 ## Best Practices
 
 ### 1. Function Naming
+
 - Use descriptive names that indicate the event and purpose
 - Prefix with `handle` for event handlers: `handleAccountLoad`, `handleNameChange`
 - Use camelCase for consistency
 
 ### 2. Error Handling
+
 Always wrap your handlers in try-catch blocks:
 
 ```typescript
@@ -123,14 +125,15 @@ export function handleAccountLoad(context: Xrm.Events.EventContext): void {
         console.error('Error in handleAccountLoad:', error);
         // Optional: Show user-friendly message
         Xrm.Navigation.openAlertDialog({
-            text: "An error occurred while loading the form.",
-            title: "Error"
+            text: 'An error occurred while loading the form.',
+            title: 'Error'
         });
     }
 }
 ```
 
 ### 3. Type Safety
+
 Leverage TypeScript for better development experience:
 
 ```typescript
@@ -142,11 +145,11 @@ interface AccountData {
 
 export function handleAccountLoad(context: Xrm.Events.EventContext): void {
     const formContext = context.getFormContext();
-    
+
     // Type-safe attribute access
-    const nameAttr = formContext.getAttribute<string>("name");
-    const phoneAttr = formContext.getAttribute<string>("telephone1");
-    
+    const nameAttr = formContext.getAttribute<string>('name');
+    const phoneAttr = formContext.getAttribute<string>('telephone1');
+
     if (nameAttr && phoneAttr) {
         // Your logic here
     }
@@ -154,19 +157,22 @@ export function handleAccountLoad(context: Xrm.Events.EventContext): void {
 ```
 
 ### 4. Async Operations
+
 Handle asynchronous operations properly:
 
 ```typescript
-export async function handleAccountLoad(context: Xrm.Events.EventContext): Promise<void> {
+export async function handleAccountLoad(
+    context: Xrm.Events.EventContext
+): Promise<void> {
     try {
         const formContext = context.getFormContext();
-        
+
         // Async web API call
         const relatedData = await Xrm.WebApi.retrieveMultipleRecords(
-            "contact", 
-            "?$filter=parentcustomerid eq " + formContext.data.entity.getId()
+            'contact',
+            '?$filter=parentcustomerid eq ' + formContext.data.entity.getId()
         );
-        
+
         // Process the data
         console.log(`Found ${relatedData.entities.length} related contacts`);
     } catch (error) {
@@ -176,23 +182,24 @@ export async function handleAccountLoad(context: Xrm.Events.EventContext): Promi
 ```
 
 ### 5. Form Context Validation
+
 Always validate form context availability:
 
 ```typescript
 export function handleFieldChange(context: Xrm.Events.EventContext): void {
     const formContext = context.getFormContext();
-    
+
     if (!formContext) {
         console.warn('Form context not available');
         return;
     }
-    
+
     const attribute = context.getEventSource();
     if (!attribute) {
         console.warn('Event source not available');
         return;
     }
-    
+
     // Your logic here
 }
 ```
@@ -200,29 +207,36 @@ export function handleFieldChange(context: Xrm.Events.EventContext): void {
 ## Dataverse Web API Examples
 
 ### Retrieve Records
+
 ```typescript
 // Get current record data
 const recordId = formContext.data.entity.getId();
 const entityName = formContext.data.entity.getEntityName();
 
-const record = await Xrm.WebApi.retrieveRecord(entityName, recordId, "?$select=name,telephone1");
+const record = await Xrm.WebApi.retrieveRecord(
+    entityName,
+    recordId,
+    '?$select=name,telephone1'
+);
 ```
 
 ### Create Records
+
 ```typescript
 const newContact = {
-    firstname: "John",
-    lastname: "Doe",
-    emailaddress1: "john.doe@example.com"
+    firstname: 'John',
+    lastname: 'Doe',
+    emailaddress1: 'john.doe@example.com'
 };
 
-const result = await Xrm.WebApi.createRecord("contact", newContact);
+const result = await Xrm.WebApi.createRecord('contact', newContact);
 ```
 
 ### Update Records
+
 ```typescript
 const updateData = {
-    telephone1: "555-0123"
+    telephone1: '555-0123'
 };
 
 await Xrm.WebApi.updateRecord(entityName, recordId, updateData);
@@ -231,6 +245,7 @@ await Xrm.WebApi.updateRecord(entityName, recordId, updateData);
 ## Building and Deployment
 
 ### Development
+
 ```bash
 # Install dependencies
 pnpm install
@@ -246,6 +261,7 @@ pnpm run format
 ```
 
 ### Deployment
+
 1. Run `pnpm run build` to compile TypeScript
 2. The compiled JavaScript will be in the `dist/` folder
 3. Upload `dist/bundle.js` as a JavaScript web resource in Dataverse

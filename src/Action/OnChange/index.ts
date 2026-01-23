@@ -1,2 +1,2 @@
-export * from './District'
-export * from './RuleMaking'
+export * from './District';
+export * from './RuleMaking';

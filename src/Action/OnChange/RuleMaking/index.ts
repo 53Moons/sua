@@ -1,1 +1,1 @@
-export * from './FIlterDocketsOnChange'
+export * from './FIlterDocketsOnChange';

@@ -1,1 +1,1 @@
-export * from './HandleTabVisibility'
+export * from './HandleTabVisibility';

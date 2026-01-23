@@ -1,2 +1,2 @@
-export * from './OnLoad'
-export * from './OnChange'
+export * from './OnLoad';
+export * from './OnChange';
