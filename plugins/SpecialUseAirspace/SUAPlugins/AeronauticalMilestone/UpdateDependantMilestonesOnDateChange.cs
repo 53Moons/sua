@@ -3,6 +3,7 @@ using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using System;
 using System.Linq;
+using static SUAPlugins.Utilities;
 
 namespace SUAPlugins.AeronauticalMilestone
 {
@@ -32,7 +33,7 @@ namespace SUAPlugins.AeronauticalMilestone
 
             try
             {
-                var aeroRef = Utilities.GetValueOnUpdate<EntityReference>(
+                var aeroRef = GetValueOnUpdate<EntityReference>(
                     target,
                     preImage,
                     "sua_aeronautical"
@@ -41,7 +42,7 @@ namespace SUAPlugins.AeronauticalMilestone
 
                     throw new InvalidPluginExecutionException("Aeronautical reference unavailable");
 
-                var dateCompleted = Utilities.GetValueOnUpdate<DateTime>(
+                var dateCompleted = GetValueOnUpdate<DateTime>(
                     target,
                     preImage,
                     "sua_datecompleted"
@@ -49,11 +50,7 @@ namespace SUAPlugins.AeronauticalMilestone
                 if (dateCompleted == default)
                     throw new InvalidPluginExecutionException("Date Completed not found");
 
-                var baselineDate = Utilities.GetValueOnUpdate<DateTime>(
-                    target,
-                    preImage,
-                    "sua_baseline"
-                );
+                var baselineDate = GetValueOnUpdate<DateTime>(target, preImage, "sua_baseline");
                 if (baselineDate == default)
                     throw new InvalidPluginExecutionException("Baseline date not found");
 

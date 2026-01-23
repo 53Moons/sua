@@ -1,13 +1,15 @@
 ﻿using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
 using System;
 using static SUAPlugins.AeronauticalMilestone.Utilities;
+using static SUAPlugins.Utilities;
 
-namespace SUAPlugins.Aeronautical
+namespace SUAPlugins.Action
 {
-    public class InitializeMilestonesOnFormalProposalDateUpdate : PluginBase
+    public class InitializeMilestonesOnUpdate : PluginBase
     {
-        public InitializeMilestonesOnFormalProposalDateUpdate()
-            : base(typeof(InitializeMilestonesOnFormalProposalDateUpdate))
+        public InitializeMilestonesOnUpdate()
+            : base(typeof(InitializeMilestonesOnUpdate))
         {
             // not implemented
         }
@@ -16,17 +18,17 @@ namespace SUAPlugins.Aeronautical
         {
             var context = localPluginContext.PluginExecutionContext;
 
-            if (context.MessageName != "Update" && context.MessageName != "Create")
+            if (context.MessageName != "Update")
             {
                 throw new InvalidPluginExecutionException(
-                    "Invalid message registration for InitializeMilestonesOnFormalProposalDateUpdate"
+                    "Invalid message registration for InitializeMilestonesOnUpdate"
                 );
             }
 
-            if (context.PrimaryEntityName != "sua_aeronautical")
+            if (context.PrimaryEntityName != "sua_action")
             {
                 throw new InvalidPluginExecutionException(
-                    "Invalid message registration for InitializeMilestonesOnFormalProposalDateUpdate"
+                    "Invalid message registration for InitializeMilestonesOnUpdate"
                 );
             }
 
@@ -39,15 +41,26 @@ namespace SUAPlugins.Aeronautical
             if (!context.PreEntityImages.TryGetValue("PreImage", out Entity preImage))
                 throw new InvalidPluginExecutionException("PreImage required on update");
 
+            Entity aero;
             try
             {
-                InitializeMilestones(target, preImage, sysService, tracer);
+                var aeronauticalRef = GetValueOnUpdate<EntityReference>(
+                    target,
+                    preImage,
+                    "sua_aeronautical"
+                );
+
+                aero = sysService.Retrieve(
+                    "sua_aeronautical",
+                    aeronauticalRef.Id,
+                    new ColumnSet(true)
+                );
+
+                InitializeMilestones(aero, aero, sysService, tracer);
             }
             catch (Exception ex)
             {
-                tracer.Trace(
-                    $"Error in InitializeMilestonesOnFormalProposalDateUpdate: {ex.Message}"
-                );
+                tracer.Trace($"Error in InitializeMilestonesOnUpdate: {ex.Message}");
                 throw new InvalidPluginExecutionException(ex.Message);
             }
         }
