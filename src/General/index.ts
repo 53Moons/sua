@@ -11,3 +11,9 @@ export function PreventAutoSave(context: Xrm.Events.SaveEventContext): void {
         console.debug('PreventAutoSave: Save operation prevented for saveMode 70 (AutoSave)');
     }
 }
+
+export function ClearMilestoneWarningNotificationsPostSave(context: Xrm.Events.SaveEventContext): void {
+    if (!context) return;
+    const formContext = context.getFormContext();
+    formContext.ui.clearFormNotification('MILESTONE_RESET_WARNING');
+}
