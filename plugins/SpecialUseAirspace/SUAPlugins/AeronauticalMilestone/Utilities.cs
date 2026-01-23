@@ -52,6 +52,116 @@ namespace SUAPlugins.AeronauticalMilestone
             }
         }
 
+        public static EntityCollection GetRelevantMilestones(
+            Entity action,
+            Entity aero,
+            Entity preAero,
+            IOrganizationService service,
+            ITracingService tracer,
+            bool supplementalAugmentOnly = false
+        )
+        {
+            EntityCollection milestones;
+            try
+            {
+                if (!action.TryGetAttributeValue("sua_rulemaking", out bool isRulemaking))
+                {
+                    throw new InvalidPluginExecutionException("Rule Making not found on action");
+                }
+                tracer.Trace($"IsRulemaking: {isRulemaking}");
+
+                if (!action.TryGetAttributeValue("sua_temporary", out bool isTemporary))
+                {
+                    throw new InvalidPluginExecutionException("Temporary not found on Action");
+                }
+                tracer.Trace($"IsTemporary: {isTemporary}");
+
+                var requiresSupplemental = GetValueOnUpdate<bool>(
+                    aero,
+                    preAero,
+                    "sua_requiressupplementalrulemaking"
+                );
+                tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
+
+                var milestoneQuery = new QueryExpression("sua_milestone")
+                {
+                    ColumnSet = new ColumnSet(true),
+                    Criteria = new FilterExpression
+                    {
+                        Conditions =
+                        {
+                            new ConditionExpression("statecode", ConditionOperator.Equal, 0),
+                            new ConditionExpression(
+                                "sua_applicability",
+                                ConditionOperator.In,
+                                2,
+                                isTemporary ? 0 : 1
+                            ),
+                            new ConditionExpression(
+                                "sua_rulemakingtype",
+                                ConditionOperator.In,
+                                2,
+                                isRulemaking ? 0 : 1
+                            )
+                        }
+                    },
+                    LinkEntities =
+                    {
+                        new LinkEntity(
+                            "sua_milestone",
+                            "sua_milestonerule",
+                            "sua_milestoneid",
+                            "sua_milestone",
+                            JoinOperator.Inner
+                        )
+                        {
+                            EntityAlias = "MR",
+                            Columns = new ColumnSet(true),
+                            Orders = { new OrderExpression("sua_offset", OrderType.Ascending) }
+                        }
+                    }
+                };
+                if (supplementalAugmentOnly)
+                {
+                    milestoneQuery.Criteria.AddCondition(
+                        new ConditionExpression(
+                            "sua_supplementaltype",
+                            ConditionOperator.Equal,
+                            requiresSupplemental ? 0 : 1
+                        )
+                    );
+                }
+                else
+                {
+                    milestoneQuery.Criteria.AddCondition(
+                        new ConditionExpression(
+                            "sua_supplementaltype",
+                            ConditionOperator.In,
+                            2,
+                            requiresSupplemental ? 0 : 1
+                        )
+                    );
+                }
+
+                try
+                {
+                    milestones = service.RetrieveMultiple(milestoneQuery);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidPluginExecutionException(ex.Message);
+                }
+
+                tracer.Trace($"Found {milestones.Entities.Count} applicable milestones");
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidPluginExecutionException(ex.Message);
+            }
+
+            return milestones;
+        }
+
         public static void InitializeMilestones(
             Entity aero,
             Entity preAero,
@@ -73,14 +183,6 @@ namespace SUAPlugins.AeronauticalMilestone
                     return;
                 }
                 tracer.Trace($"Formal Proposal Date: {formalProposalDate}");
-
-                var requiresSupplemental = GetValueOnUpdate<bool>(
-                    aero,
-                    preAero,
-                    "sua_requiressupplementalrulemaking"
-                );
-
-                tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
 
                 var actionQuery = new QueryExpression("sua_action")
                 {
@@ -111,6 +213,13 @@ namespace SUAPlugins.AeronauticalMilestone
                 }
 
                 tracer.Trace($"Related Action: {action.Id}");
+                ////////
+                var requiresSupplemental = GetValueOnUpdate<bool>(
+                    aero,
+                    preAero,
+                    "sua_requiressupplementalrulemaking"
+                );
+                tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
 
                 if (!action.TryGetAttributeValue("sua_rulemaking", out bool isRulemaking))
                 {
