@@ -1,8 +1,5 @@
-import { AttributeChangeNotificationHandler } from "../../AttributeChangeNotificationHandler";
 
-export interface FormNotification {
-    message: string, level: Xrm.FormNotificationLevel, id: string
-}
+import { AttributeChangeNotificationHandler, FormNotification } from "../../General";
 
 export function InitializeAeronauticalNotifications(context: Xrm.Events.EventContext, attributeNames: string[], notification: FormNotification) {
     if (!context) {
@@ -24,3 +21,4 @@ export function InitializeAeronauticalNotifications(context: Xrm.Events.EventCon
         attribute.addOnChange(() => AttributeChangeNotificationHandler(formContext, attributes, notification));
     }
 }
+
