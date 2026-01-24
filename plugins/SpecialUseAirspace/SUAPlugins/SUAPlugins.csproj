@@ -89,6 +89,7 @@
   <ItemGroup>
     <Compile Include="Action\InitializeMilestonesOnUpdate.cs" />
     <Compile Include="Action\Utilities.cs" />
+    <Compile Include="AeronauticalMilestone\ProtectOutOfOrderUpdate.cs" />
     <Compile Include="AeronauticalMilestone\UpdateDependantMilestonesOnDateChange.cs" />
     <Compile Include="AeronauticalMilestone\Utilities.cs" />
     <Compile Include="Aeronautical\HandleSupplementalRulemakingToggle.cs" />
