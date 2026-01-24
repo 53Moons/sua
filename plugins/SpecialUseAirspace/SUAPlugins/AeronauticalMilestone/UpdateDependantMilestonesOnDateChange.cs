@@ -85,20 +85,8 @@ namespace SUAPlugins.AeronauticalMilestone
                             JoinOperator.Inner
                         )
                         {
-                            LinkEntities =
-                            {
-                                new LinkEntity(
-                                    "sua_milestone",
-                                    "sua_milestonerule",
-                                    "sua_milestoneid",
-                                    "sua_milestone",
-                                    JoinOperator.Inner
-                                )
-                                {
-                                    EntityAlias = "MR",
-                                    Columns = new ColumnSet(true),
-                                }
-                            }
+                            Columns = new ColumnSet(true),
+                            EntityAlias = "M"
                         }
                     }
                 };
@@ -135,7 +123,9 @@ namespace SUAPlugins.AeronauticalMilestone
                 DateTime currentBase = dateCompleted;
                 int currentOffset;
                 var firstOffsetAlias =
-                    aeroMilestones.Entities.First().GetAttributeValue<AliasedValue>("MR.sua_offset")
+                    aeroMilestones.Entities
+                        .First()
+                        .GetAttributeValue<AliasedValue>("M.sua_activeoffset")
                     ?? throw new InvalidPluginExecutionException(
                         "Unable to parse new offset for next milestone"
                     );
@@ -158,7 +148,7 @@ namespace SUAPlugins.AeronauticalMilestone
                         continue;
 
                     var offsetAlias =
-                        am.GetAttributeValue<AliasedValue>("MR.sua_offset")
+                        am.GetAttributeValue<AliasedValue>("M.sua_activeoffset")
                         ?? throw new InvalidPluginExecutionException(
                             "Unable to parse new offset for next milestone"
                         );

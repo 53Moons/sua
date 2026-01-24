@@ -101,23 +101,9 @@ namespace SUAPlugins.Aeronautical
                         {
                             EntityAlias = "M",
                             Columns = new ColumnSet(true),
-                            LinkEntities =
+                            Orders =
                             {
-                                new LinkEntity(
-                                    "sua_milestone",
-                                    "sua_milestonerule",
-                                    "sua_milestoneid",
-                                    "sua_milestone",
-                                    JoinOperator.Inner
-                                )
-                                {
-                                    EntityAlias = "MR",
-                                    Columns = new ColumnSet(true),
-                                    Orders =
-                                    {
-                                        new OrderExpression("sua_offset", OrderType.Ascending)
-                                    }
-                                }
+                                new OrderExpression("sua_activeoffset", OrderType.Ascending)
                             }
                         }
                     }
@@ -186,7 +172,7 @@ namespace SUAPlugins.Aeronautical
                 int currentOffset = (int)
                     aeroMilestones.Entities
                         .Last()
-                        .GetAttributeValue<AliasedValue>("MR.sua_offset")
+                        .GetAttributeValue<AliasedValue>("M.sua_activeoffset")
                         .Value;
 
                 var aeroMilestonesToCreate = new EntityCollection()
@@ -195,8 +181,7 @@ namespace SUAPlugins.Aeronautical
                 };
                 foreach (var milestone in milestonesToAdd.Entities)
                 {
-                    var offsetDays = (int)
-                        milestone.GetAttributeValue<AliasedValue>("MR.sua_offset").Value;
+                    var offsetDays = milestone.GetAttributeValue<int>("sua_activeoffset");
                     var newBaselineDate = currentBaselineDate.AddDays(offsetDays - currentOffset);
                     var newAeroMilestone = new Entity("sua_aeronauticalmilestone")
                     {

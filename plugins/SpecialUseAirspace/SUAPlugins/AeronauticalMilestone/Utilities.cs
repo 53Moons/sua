@@ -105,28 +105,7 @@ namespace SUAPlugins.AeronauticalMilestone
                             )
                         }
                     },
-                    LinkEntities =
-                    {
-                        new LinkEntity(
-                            "sua_milestone",
-                            "sua_milestonerule",
-                            "sua_milestoneid",
-                            "sua_milestone",
-                            JoinOperator.Inner
-                        )
-                        {
-                            EntityAlias = "MR",
-                            Columns = new ColumnSet(true),
-                            LinkCriteria = new FilterExpression
-                            {
-                                Conditions =
-                                {
-                                    new ConditionExpression("statecode", ConditionOperator.Equal, 0)
-                                }
-                            },
-                            Orders = { new OrderExpression("sua_offset", OrderType.Ascending) }
-                        }
-                    }
+                    Orders = { new OrderExpression("sua_activeoffset", OrderType.Ascending) }
                 };
                 if (supplementalAugmentOnly)
                 {
@@ -248,7 +227,7 @@ namespace SUAPlugins.AeronauticalMilestone
                         ["sua_milestone"] = milestone.ToEntityReference(),
                         ["sua_aeronautical"] = aero.ToEntityReference(),
                         ["sua_baseline"] = formalProposalDate.AddDays(
-                            (int)milestone.GetAttributeValue<AliasedValue>("MR.sua_offset").Value
+                            milestone.GetAttributeValue<int>("sua_activeoffset")
                         )
                     };
                     aeronauticalMilestones.Entities.Add(relatedMilestone);
