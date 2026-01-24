@@ -265,5 +265,224 @@ namespace SUAPlugins.AeronauticalMilestone
                 throw new InvalidPluginExecutionException(ex.Message, ex);
             }
         }
+
+        public static EntityCollection UpdateDependantMilestones(
+            Entity aeroMilestone,
+            EntityCollection aeroMilestones,
+            ITracingService tracer
+        )
+        {
+            if (aeroMilestone == null)
+                throw new ArgumentNullException(nameof(aeroMilestone));
+            if (aeroMilestones == null)
+                throw new ArgumentNullException(nameof(aeroMilestones));
+
+            tracer.Trace($"Updating dependant milestones for trigger milestone {aeroMilestone.Id}");
+
+            if (!aeroMilestone.TryGetAttributeValue("sua_baseline", out DateTime triggerBaseline))
+                throw new InvalidPluginExecutionException(
+                    "Baseline date not found on triggering milestone."
+                );
+
+            bool triggerHasCompleted = aeroMilestone.TryGetAttributeValue(
+                "sua_datecompleted",
+                out DateTime dateCompleted
+            );
+
+            tracer.Trace(
+                $"Trigger Baseline: {triggerBaseline:d}, Completed: {triggerHasCompleted} "
+                    + (triggerHasCompleted ? $", Date Completed: {dateCompleted:d}" : "")
+            );
+
+            // Anchor date: if completed, downstream starts from completion; otherwise baseline.
+            DateTime triggerAnchor = triggerHasCompleted ? dateCompleted : triggerBaseline;
+
+            // If trigger is completed, it contributes NO delay downstream.
+            int prevDelay = triggerHasCompleted
+                ? 0
+                : (aeroMilestone.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0);
+
+            // Need trigger offset to compute deltas.
+            var aeroMilestoneWithOffset =
+                aeroMilestones.Entities.FirstOrDefault(m => m.Id == aeroMilestone.Id)
+                ?? throw new Exception(
+                    "Triggering milestone required in collection of related milestones."
+                );
+            int prevOffset = GetAliasedInt(aeroMilestoneWithOffset, "M.sua_activeoffset");
+
+            var ordered = aeroMilestones.Entities
+                .Where(m => m.Id != aeroMilestone.Id)
+                .Where(m => m.Contains("sua_baseline"))
+                .OrderBy(m => m.GetAttributeValue<DateTime>("sua_baseline"))
+                .ToList();
+
+            // Keep your original intent: only recalc milestones at/after the trigger baseline.
+            ordered = ordered
+                .Where(
+                    m =>
+                        m.GetAttributeValue<DateTime>("sua_baseline") >= triggerBaseline
+                        && m.GetAttributeValue<DateTime>("sua_datecompleted") == default
+                )
+                .ToList();
+
+            tracer.Trace($"Found {ordered.Count} dependant milestones to update after filtering");
+
+            var updates = new EntityCollection { EntityName = "sua_aeronauticalmilestone" };
+
+            DateTime prevOriginalBaseline = triggerBaseline; // your clamp reference
+            DateTime currentAnchor = triggerAnchor;
+
+            foreach (var m in ordered)
+            {
+                int currentOffset = GetAliasedInt(m, "M.sua_activeoffset");
+
+                // Baseline for THIS milestone = previous anchor + (offset delta) + (previous milestone's delay)
+                int delta = currentOffset - prevOffset;
+                DateTime candidate = currentAnchor.AddDays(delta + prevDelay);
+
+                // Your clamp: don't move earlier than previous "stored" baseline
+                DateTime applicable =
+                    candidate < prevOriginalBaseline ? prevOriginalBaseline : candidate;
+
+                tracer.Trace(
+                    $"Updating {m.GetAttributeValue<string>("sua_name")} "
+                        + $"from {m.GetAttributeValue<DateTime>("sua_baseline"):d} "
+                        + $"to {applicable:d} "
+                        + $"(delta={delta}, prevDelay={prevDelay})"
+                );
+
+                updates.Entities.Add(
+                    new Entity(updates.EntityName) { Id = m.Id, ["sua_baseline"] = applicable }
+                );
+
+                // Move forward in the chain:
+                currentAnchor = applicable;
+                prevOffset = currentOffset;
+
+                tracer.Trace(
+                    $"{m.GetAttributeValue<string>("sua_name")} hasDelayAttr={m.Attributes.Contains("sua_anticipateddelay")} "
+                        + $"delayValue={(m.GetAttributeValue<int?>("sua_anticipateddelay")?.ToString() ?? "null")}"
+                );
+
+                // IMPORTANT: this milestone's delay affects the NEXT milestone (even if THIS milestone is completed)
+                prevDelay = m.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0;
+
+                // Keep your original baseline clamp behavior
+                prevOriginalBaseline = m.GetAttributeValue<DateTime>("sua_baseline");
+            }
+
+            return updates;
+        }
+
+        public static EntityCollection RebaseRelatedMilestones(
+            Entity aeroMilestone, // POST IMAGE (final state)
+            EntityCollection aeroMilestones, // ALL related milestones (includes trigger)
+            ITracingService tracer
+        )
+        {
+            if (aeroMilestone == null)
+                throw new ArgumentNullException(nameof(aeroMilestone));
+            if (aeroMilestones == null)
+                throw new ArgumentNullException(nameof(aeroMilestones));
+
+            if (!aeroMilestone.TryGetAttributeValue("sua_baseline", out DateTime triggerBaseline))
+                throw new InvalidPluginExecutionException(
+                    "Trigger milestone missing sua_baseline in post image."
+                );
+
+            bool triggerHasCompleted = aeroMilestone.TryGetAttributeValue(
+                "sua_datecompleted",
+                out DateTime triggerCompletedDate
+            );
+
+            // Anchor: completed => DateCompleted, else => baseline
+            DateTime currentAnchor = triggerHasCompleted ? triggerCompletedDate : triggerBaseline;
+
+            // Critical rule: if completed, delay does NOT carry downstream (even if field has a value)
+            int prevDelay = triggerHasCompleted
+                ? 0
+                : (aeroMilestone.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0);
+
+            // Need the trigger's offset from the retrieved collection (aliased value)
+            var triggerInCollection =
+                aeroMilestones.Entities.FirstOrDefault(e => e.Id == aeroMilestone.Id)
+                ?? throw new InvalidPluginExecutionException(
+                    "Trigger milestone must be included in aeroMilestones collection."
+                );
+
+            int triggerOffset = GetAliasedInt(triggerInCollection, "M.sua_activeoffset");
+            int prevOffset = triggerOffset;
+
+            tracer.Trace(
+                $"Trigger={aeroMilestone.GetAttributeValue<string>("sua_name")} "
+                    + $"baseline={triggerBaseline:d} completed={triggerHasCompleted} "
+                    + $"{(triggerHasCompleted ? $"dateCompleted={triggerCompletedDate:d} " : "")}"
+                    + $"triggerOffset={triggerOffset} triggerDelayField={(aeroMilestone.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0)} prevDelayApplied={prevDelay}"
+            );
+
+            // Walk downstream by OFFSET (not baseline) to avoid negative deltas / unstable ordering
+            var chain = aeroMilestones.Entities
+                .Where(m => m.Id != aeroMilestone.Id)
+                .Select(m => new { Entity = m, Offset = TryGetAliasedInt(m, "M.sua_activeoffset") })
+                .Where(x => x.Offset.HasValue && x.Offset.Value > triggerOffset)
+                .OrderBy(x => x.Offset.Value)
+                .Select(x => x.Entity)
+                .ToList();
+
+            tracer.Trace($"Found {chain.Count} downstream milestones by offset.");
+
+            var updates = new EntityCollection { EntityName = "sua_aeronauticalmilestone" };
+
+            foreach (var m in chain)
+            {
+                int currentOffset = GetAliasedInt(m, "M.sua_activeoffset");
+                int delta = currentOffset - prevOffset;
+
+                bool mHasCompleted = m.TryGetAttributeValue(
+                    "sua_datecompleted",
+                    out DateTime mCompletedDate
+                );
+
+                if (mHasCompleted)
+                {
+                    // Completed milestones:
+                    // - do not recalc their baseline
+                    // - anchor becomes their completion date (ground truth)
+                    // - delay does not carry past completion (even if delay field is non-zero)
+                    tracer.Trace(
+                        $"Encountered completed milestone {m.GetAttributeValue<string>("sua_name")} "
+                            + $"offset={currentOffset} dateCompleted={mCompletedDate:d}. "
+                            + $"Resetting anchor and clearing carried delay."
+                    );
+
+                    currentAnchor = mCompletedDate;
+                    prevDelay = 0;
+                    prevOffset = currentOffset;
+                    continue;
+                }
+
+                DateTime newBaseline = currentAnchor.AddDays(delta + prevDelay);
+
+                tracer.Trace(
+                    $"Updating {m.GetAttributeValue<string>("sua_name")} "
+                        + $"offset={currentOffset} delta={delta} prevDelay={prevDelay} "
+                        + $"oldBaseline={m.GetAttributeValue<DateTime>("sua_baseline"):d} newBaseline={newBaseline:d} "
+                        + $"delayField={(m.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0)}"
+                );
+
+                updates.Entities.Add(
+                    new Entity(updates.EntityName) { Id = m.Id, ["sua_baseline"] = newBaseline }
+                );
+
+                // Advance the chain
+                currentAnchor = newBaseline;
+                prevOffset = currentOffset;
+
+                // Carry THIS milestone's delay to the NEXT milestone (since this milestone isn't completed)
+                prevDelay = m.GetAttributeValue<int?>("sua_anticipateddelay") ?? 0;
+            }
+
+            return updates;
+        }
     }
 }

@@ -18,5 +18,42 @@ namespace SUAPlugins
             }
             return value;
         }
+
+        public static int GetAliasedInt(Entity e, string aliasAttribute)
+        {
+            var av =
+                e.GetAttributeValue<AliasedValue>(aliasAttribute)
+                ?? throw new InvalidPluginExecutionException(
+                    $"Missing aliased attribute {aliasAttribute}"
+                );
+
+            try
+            {
+                return Convert.ToInt32(av.Value);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidPluginExecutionException(
+                    $"{aliasAttribute} was not a valid integer",
+                    ex
+                );
+            }
+        }
+
+        public static int? TryGetAliasedInt(Entity e, string aliasAttribute)
+        {
+            var av = e.GetAttributeValue<AliasedValue>(aliasAttribute);
+            if (av?.Value == null)
+                return null;
+
+            try
+            {
+                return Convert.ToInt32(av.Value);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

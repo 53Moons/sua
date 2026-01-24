@@ -2,7 +2,7 @@
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using System;
-using System.Linq;
+using static SUAPlugins.AeronauticalMilestone.Utilities;
 using static SUAPlugins.Utilities;
 
 namespace SUAPlugins.AeronauticalMilestone
@@ -66,12 +66,12 @@ namespace SUAPlugins.AeronauticalMilestone
                                 "sua_aeronautical",
                                 ConditionOperator.Equal,
                                 aeroRef.Id
-                            ),
-                            new ConditionExpression(
-                                "sua_baseline",
-                                ConditionOperator.GreaterEqual,
-                                baselineDate
-                            )
+                            ) //,
+                            //new ConditionExpression(
+                            //    "sua_baseline",
+                            //    ConditionOperator.GreaterEqual,
+                            //    baselineDate
+                            //)
                         }
                     },
                     Orders = { new OrderExpression("sua_baseline", OrderType.Ascending) },
@@ -110,84 +110,18 @@ namespace SUAPlugins.AeronauticalMilestone
                     return;
                 }
 
-                foreach (var attr in aeroMilestones.Entities.First().Attributes)
-                {
-                    tracer.Trace($"{attr.Key}: {attr.Value}");
-                }
+                if (!context.PostEntityImages.TryGetValue("PostImage", out Entity postImage))
+                    throw new InvalidPluginExecutionException("PostImage required on update");
 
-                var aeroMilestoneUpdates = new EntityCollection()
-                {
-                    EntityName = "sua_aeronauticalmilestone"
-                };
-
-                DateTime currentBase = dateCompleted;
-                DateTime previousBase = baselineDate;
-                int currentOffset;
-                var firstOffsetAlias =
-                    aeroMilestones.Entities
-                        .First()
-                        .GetAttributeValue<AliasedValue>("M.sua_activeoffset")
-                    ?? throw new InvalidPluginExecutionException(
-                        "Unable to parse new offset for next milestone"
-                    );
-                try
-                {
-                    currentOffset = Convert.ToInt32(firstOffsetAlias.Value);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidPluginExecutionException(
-                        "Offset value was not a valid integer",
-                        ex
-                    );
-                }
-
-                foreach (var am in aeroMilestones.Entities)
-                {
-                    var currentId = am.GetAttributeValue<Guid>("sua_aeronauticalmilestoneid");
-                    if (currentId == target.Id)
-                        continue;
-
-                    var offsetAlias =
-                        am.GetAttributeValue<AliasedValue>("M.sua_activeoffset")
-                        ?? throw new InvalidPluginExecutionException(
-                            "Unable to parse new offset for next milestone"
-                        );
-                    int offsetDays;
-                    try
-                    {
-                        offsetDays = Convert.ToInt32(offsetAlias.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidPluginExecutionException(
-                            "Offset value was not a valid integer",
-                            ex
-                        );
-                    }
-                    DateTime newBaseline = currentBase.AddDays(offsetDays - currentOffset);
-                    tracer.Trace(
-                        $"Updating milestone {am.GetAttributeValue<string>("sua_name")} "
-                            + $"from baseline {previousBase:d} "
-                            + $"to new baseline {newBaseline:d}"
-                    );
-                    DateTime applicableBaseline =
-                        newBaseline < previousBase ? previousBase : newBaseline;
-                    var update = new Entity(aeroMilestoneUpdates.EntityName)
-                    {
-                        Id = am.Id,
-                        ["sua_baseline"] = applicableBaseline,
-                    };
-                    aeroMilestoneUpdates.Entities.Add(update);
-
-                    currentBase = applicableBaseline;
-                    currentOffset = offsetDays;
-                    previousBase = am.GetAttributeValue<DateTime>("sua_baseline");
-                }
+                var testingCollection = UpdateDependantMilestones(
+                    postImage,
+                    aeroMilestones,
+                    tracer
+                );
 
                 var updateMultipleRequest = new UpdateMultipleRequest
                 {
-                    Targets = aeroMilestoneUpdates
+                    Targets = testingCollection
                 };
                 try
                 {

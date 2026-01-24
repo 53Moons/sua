@@ -92,6 +92,7 @@
     <Compile Include="AeronauticalMilestone\ProtectInvalidCompletionDate.cs" />
     <Compile Include="AeronauticalMilestone\ProtectOutOfOrderUpdate.cs" />
     <Compile Include="AeronauticalMilestone\UpdateDependantMilestonesOnDateChange.cs" />
+    <Compile Include="AeronauticalMilestone\UpdateDependantMiletonesOnDelayChange.cs" />
     <Compile Include="AeronauticalMilestone\Utilities.cs" />
     <Compile Include="Aeronautical\HandleSupplementalRulemakingToggle.cs" />
     <Compile Include="Aeronautical\InitializeMilestonesOnFormalProposalDateUpdate.cs" />
