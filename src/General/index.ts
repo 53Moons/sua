@@ -1,6 +1,7 @@
 export * from './Attributes';
 export * from './Tabs';
 export * from './Types';
+export * from './Subgrid';
 
 export function PreventAutoSave(context: Xrm.Events.SaveEventContext): void {
     if (!context) return;
