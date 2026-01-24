@@ -83,6 +83,12 @@ namespace SUAPlugins.AeronauticalMilestone
                 );
                 tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
 
+                var typeOfAction = GetValueOnUpdate<OptionSetValue>(
+                    aero,
+                    preAero,
+                    "sua_typeofaction"
+                );
+
                 var milestoneQuery = new QueryExpression("sua_milestone")
                 {
                     ColumnSet = new ColumnSet(true),
@@ -102,6 +108,11 @@ namespace SUAPlugins.AeronauticalMilestone
                                 ConditionOperator.In,
                                 2,
                                 isRulemaking ? 0 : 1
+                            ),
+                            new ConditionExpression(
+                                "sua_appliesto",
+                                ConditionOperator.ContainValues,
+                                typeOfAction.Value
                             )
                         }
                     },
