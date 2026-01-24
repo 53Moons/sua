@@ -121,6 +121,7 @@ namespace SUAPlugins.AeronauticalMilestone
                 };
 
                 DateTime currentBase = dateCompleted;
+                DateTime previousBase = baselineDate;
                 int currentOffset;
                 var firstOffsetAlias =
                     aeroMilestones.Entities
@@ -165,15 +166,23 @@ namespace SUAPlugins.AeronauticalMilestone
                         );
                     }
                     DateTime newBaseline = currentBase.AddDays(offsetDays - currentOffset);
+                    tracer.Trace(
+                        $"Updating milestone {am.GetAttributeValue<string>("sua_name")} "
+                            + $"from baseline {previousBase:d} "
+                            + $"to new baseline {newBaseline:d}"
+                    );
+                    DateTime applicableBaseline =
+                        newBaseline < previousBase ? previousBase : newBaseline;
                     var update = new Entity(aeroMilestoneUpdates.EntityName)
                     {
                         Id = am.Id,
-                        ["sua_baseline"] = newBaseline,
+                        ["sua_baseline"] = applicableBaseline,
                     };
                     aeroMilestoneUpdates.Entities.Add(update);
 
-                    currentBase = newBaseline;
+                    currentBase = applicableBaseline;
                     currentOffset = offsetDays;
+                    previousBase = am.GetAttributeValue<DateTime>("sua_baseline");
                 }
 
                 var updateMultipleRequest = new UpdateMultipleRequest
