@@ -117,6 +117,13 @@ namespace SUAPlugins.AeronauticalMilestone
                         {
                             EntityAlias = "MR",
                             Columns = new ColumnSet(true),
+                            LinkCriteria = new FilterExpression
+                            {
+                                Conditions =
+                                {
+                                    new ConditionExpression("statecode", ConditionOperator.Equal, 0)
+                                }
+                            },
                             Orders = { new OrderExpression("sua_offset", OrderType.Ascending) }
                         }
                     }
@@ -213,81 +220,14 @@ namespace SUAPlugins.AeronauticalMilestone
                 }
 
                 tracer.Trace($"Related Action: {action.Id}");
-                ////////
-                var requiresSupplemental = GetValueOnUpdate<bool>(
+
+                EntityCollection milestones = GetRelevantMilestones(
+                    action,
                     aero,
                     preAero,
-                    "sua_requiressupplementalrulemaking"
+                    service,
+                    tracer
                 );
-                tracer.Trace($"Requires Supplemental Rulemaking {requiresSupplemental}");
-
-                if (!action.TryGetAttributeValue("sua_rulemaking", out bool isRulemaking))
-                {
-                    throw new InvalidPluginExecutionException("Rule Making not found on action");
-                }
-
-                tracer.Trace($"IsRulemaking: {isRulemaking}");
-
-                if (!action.TryGetAttributeValue("sua_temporary", out bool isTemporary))
-                {
-                    throw new InvalidPluginExecutionException("Temporary not found on Action");
-                }
-
-                tracer.Trace($"IsTemporary: {isTemporary}");
-
-                var milestoneQuery = new QueryExpression("sua_milestone")
-                {
-                    ColumnSet = new ColumnSet(true),
-                    Criteria = new FilterExpression
-                    {
-                        Conditions =
-                        {
-                            new ConditionExpression("statecode", ConditionOperator.Equal, 0),
-                            new ConditionExpression(
-                                "sua_applicability",
-                                ConditionOperator.In,
-                                2,
-                                isTemporary ? 0 : 1
-                            ),
-                            new ConditionExpression(
-                                "sua_rulemakingtype",
-                                ConditionOperator.In,
-                                2,
-                                isRulemaking ? 0 : 1
-                            ),
-                            new ConditionExpression(
-                                "sua_supplementaltype",
-                                ConditionOperator.In,
-                                2,
-                                requiresSupplemental ? 0 : 1
-                            )
-                        }
-                    },
-                    LinkEntities =
-                    {
-                        new LinkEntity(
-                            "sua_milestone",
-                            "sua_milestonerule",
-                            "sua_milestoneid",
-                            "sua_milestone",
-                            JoinOperator.Inner
-                        )
-                        {
-                            EntityAlias = "MR",
-                            Columns = new ColumnSet(true),
-                        }
-                    }
-                };
-
-                EntityCollection milestones;
-                try
-                {
-                    milestones = service.RetrieveMultiple(milestoneQuery);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidPluginExecutionException(ex.Message);
-                }
 
                 tracer.Trace($"Found {milestones.Entities.Count} applicable milestones");
 
