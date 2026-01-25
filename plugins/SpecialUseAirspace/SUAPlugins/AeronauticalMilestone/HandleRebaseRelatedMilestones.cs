@@ -1,15 +1,14 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
-using SUAPlugins.Aeronautical;
 using static SUAPlugins.AeronauticalMilestone.Utilities;
 
 namespace SUAPlugins.AeronauticalMilestone
 {
-    public class UpdateDependantMiletonesOnDelayChange : PluginBase
+    public class HandleRebaseRelatedMilestones : PluginBase
     {
-        public UpdateDependantMiletonesOnDelayChange()
-            : base(typeof(UpdateDependantMiletonesOnDelayChange))
+        public HandleRebaseRelatedMilestones()
+            : base(typeof(HandleRebaseRelatedMilestones))
         {
             // not implemented
         }
@@ -26,21 +25,8 @@ namespace SUAPlugins.AeronauticalMilestone
             )
             {
                 throw new InvalidPluginExecutionException(
-                    $"Invalid registration for {nameof(HandleSupplementalRulemakingToggle)}"
+                    $"Invalid registration for {nameof(HandleRebaseRelatedMilestones)}"
                 );
-            }
-
-            if (!context.InputParameters.TryGetValue("Target", out Entity target))
-            {
-                throw new InvalidPluginExecutionException(
-                    "Target entity is missing in the input parameters."
-                );
-            }
-
-            if (!target.TryGetAttributeValue("sua_anticipateddelay", out int newDelay))
-            {
-                tracer.Trace("No anticipated delay change detected, exiting plugin.");
-                return;
             }
 
             if (!context.PostEntityImages.TryGetValue("PostImage", out Entity postImage))
@@ -49,7 +35,6 @@ namespace SUAPlugins.AeronauticalMilestone
                     "Post image is missing in the plugin context."
                 );
             }
-
             if (
                 !postImage.TryGetAttributeValue(
                     "sua_aeronautical",
