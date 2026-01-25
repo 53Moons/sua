@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
+using System;
 using static SUAPlugins.AeronauticalMilestone.Utilities;
 
 namespace SUAPlugins.AeronauticalMilestone
@@ -46,60 +47,76 @@ namespace SUAPlugins.AeronauticalMilestone
                     "Aeronautical reference is missing in the post image."
                 );
             }
-
-            var aeroNauticalQuery = new QueryExpression("sua_aeronauticalmilestone")
+            try
             {
-                ColumnSet = new ColumnSet(true),
-                Criteria =
+                var aeroNauticalQuery = new QueryExpression("sua_aeronauticalmilestone")
                 {
-                    Conditions =
+                    ColumnSet = new ColumnSet(true),
+                    Criteria =
                     {
-                        new ConditionExpression(
-                            "sua_aeronautical",
-                            ConditionOperator.Equal,
-                            aeronauticalRef.Id
+                        Conditions =
+                        {
+                            new ConditionExpression(
+                                "sua_aeronautical",
+                                ConditionOperator.Equal,
+                                aeronauticalRef.Id
+                            )
+                        }
+                    },
+                    LinkEntities =
+                    {
+                        new LinkEntity(
+                            "sua_aeronauticalmilestone",
+                            "sua_milestone",
+                            "sua_milestone",
+                            "sua_milestoneid",
+                            JoinOperator.Inner
                         )
+                        {
+                            Columns = new ColumnSet(true),
+                            EntityAlias = "M"
+                        }
                     }
-                },
-                LinkEntities =
+                };
+                var aeroMilestones = sysService.RetrieveMultiple(aeroNauticalQuery);
+
+                tracer.Trace(
+                    $"Found {aeroMilestones.Entities.Count} dependant milestones to evaluate for update."
+                );
+
+                var aeroMilestoneUpdates = RebaseRelatedMilestones(
+                    postImage,
+                    aeroMilestones,
+                    tracer
+                );
+
+                if (aeroMilestoneUpdates.Entities.Count < 1)
                 {
-                    new LinkEntity(
-                        "sua_aeronauticalmilestone",
-                        "sua_milestone",
-                        "sua_milestone",
-                        "sua_milestoneid",
-                        JoinOperator.Inner
-                    )
-                    {
-                        Columns = new ColumnSet(true),
-                        EntityAlias = "M"
-                    }
+                    tracer.Trace("No dependant milestones found, exiting plugin.");
+                    return;
                 }
-            };
-            var aeroMilestones = sysService.RetrieveMultiple(aeroNauticalQuery);
 
-            tracer.Trace(
-                $"Found {aeroMilestones.Entities.Count} dependant milestones to evaluate for update."
-            );
+                tracer.Trace(
+                    $"Preparing to update {aeroMilestoneUpdates.Entities.Count} dependant milestones with new anticipated dates."
+                );
 
-            var aeroMilestoneUpdates = RebaseRelatedMilestones(postImage, aeroMilestones, tracer);
+                var updateRequest = new UpdateMultipleRequest { Targets = aeroMilestoneUpdates };
 
-            if (aeroMilestoneUpdates.Entities.Count < 1)
-            {
-                tracer.Trace("No dependant milestones found, exiting plugin.");
-                return;
+                sysService.Execute(updateRequest);
+                tracer.Trace(
+                    $"Updated {aeroMilestoneUpdates.Entities.Count} dependant milestones with new anticipated dates."
+                );
+
+                UpdateLatestMilestoneBaseline(aeronauticalRef, sysService);
             }
-
-            tracer.Trace(
-                $"Preparing to update {aeroMilestoneUpdates.Entities.Count} dependant milestones with new anticipated dates."
-            );
-
-            var updateRequest = new UpdateMultipleRequest { Targets = aeroMilestoneUpdates };
-
-            sysService.Execute(updateRequest);
-            tracer.Trace(
-                $"Updated {aeroMilestoneUpdates.Entities.Count} dependant milestones with new anticipated dates."
-            );
+            catch (Exception ex)
+            {
+                tracer.Trace($"Exception: {ex.Message}\n{ex.StackTrace}");
+                throw new InvalidPluginExecutionException(
+                    "An error occurred in HandleRebaseRelatedMilestones plugin.",
+                    ex
+                );
+            }
         }
     }
 }

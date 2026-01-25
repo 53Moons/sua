@@ -42,6 +42,7 @@ namespace SUAPlugins.Aeronautical
             try
             {
                 InitializeMilestones(target, preImage, sysService, tracer);
+                UpdateLatestMilestoneBaseline(target.ToEntityReference(), sysService);
             }
             catch (Exception ex)
             {

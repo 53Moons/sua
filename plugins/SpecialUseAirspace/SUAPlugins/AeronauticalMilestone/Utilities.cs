@@ -484,5 +484,63 @@ namespace SUAPlugins.AeronauticalMilestone
 
             return updates;
         }
+
+        public static void UpdateLatestMilestoneBaseline(
+            EntityReference aeroRef,
+            IOrganizationService service
+        )
+        {
+            if (aeroRef == null)
+                throw new ArgumentNullException(nameof(aeroRef));
+            if (service == null)
+                throw new ArgumentNullException(nameof(service));
+
+            var aeroMilestoneQuery = new QueryExpression("sua_aeronauticalmilestone")
+            {
+                ColumnSet = new ColumnSet("sua_baseline", "sua_datecompleted"),
+                Criteria =
+                {
+                    Conditions =
+                    {
+                        new ConditionExpression(
+                            "sua_aeronautical",
+                            ConditionOperator.Equal,
+                            aeroRef.Id
+                        ),
+                        new ConditionExpression("sua_datecompleted", ConditionOperator.Null)
+                    }
+                },
+                Orders = { new OrderExpression("sua_baseline", OrderType.Ascending) }
+                //,
+                //LinkEntities =
+                //{
+                //    new LinkEntity
+                //    {
+                //        LinkFromEntityName = "sua_aeronauticalmilestone",
+                //        LinkFromAttributeName = "sua_milestone",
+                //        LinkToEntityName = "sua_milestone",
+                //        LinkToAttributeName = "sua_milestoneid",
+                //        Columns = new ColumnSet("sua_name", "sua_activeoffset"),
+                //        EntityAlias = "M",
+                //        Orders = { new OrderExpression("sua_activeoffset", OrderType.Ascending) }
+                //    }
+                //}
+            };
+
+            var aeroMilestones = service.RetrieveMultiple(aeroMilestoneQuery).Entities;
+            if (aeroMilestones.Count == 0)
+                return;
+
+            var lastMilestone = aeroMilestones
+                .OrderBy(m => m.GetAttributeValue<DateTime>("sua_baseline"))
+                .Last();
+
+            var aeroEntity = new Entity("sua_aeronautical") { Id = aeroRef.Id };
+            aeroEntity["sua_lastmilestonebaseline"] = lastMilestone.GetAttributeValue<DateTime>(
+                "sua_baseline"
+            );
+
+            service.Update(aeroEntity);
+        }
     }
 }
