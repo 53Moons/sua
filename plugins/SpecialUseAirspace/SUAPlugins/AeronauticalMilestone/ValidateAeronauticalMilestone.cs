@@ -211,15 +211,15 @@ namespace SUAPlugins.AeronauticalMilestone
             IOrganizationService service
         )
         {
-            if (!target.TryGetAttributeValue("sua_datecompleted", out DateTime completionDate))
+            if (!target.TryGetAttributeValue("sua_datecompleted", out DateTime _))
                 return;
 
-            if (!target.TryGetAttributeValue("sua_baseline", out DateTime baselineDate))
+            if (!target.TryGetAttributeValue("sua_activeoffset", out decimal activeOffset))
             {
-                if (!preImage.TryGetAttributeValue("sua_baseline", out baselineDate))
+                if (!preImage.TryGetAttributeValue("sua_activeoffset", out activeOffset))
                 {
                     throw new InvalidPluginExecutionException(
-                        "Baseline date (sua_baseline) not found on Target or PreImage."
+                        "Active Offset (sua_activeoffset) not found on Target or PreImage."
                     );
                 }
             }
@@ -257,9 +257,9 @@ namespace SUAPlugins.AeronauticalMilestone
                             aeronauticalRef.Id
                         ),
                         new ConditionExpression(
-                            "sua_baseline",
+                            "sua_activeoffset",
                             ConditionOperator.LessEqual,
-                            baselineDate
+                            activeOffset
                         ),
                         new ConditionExpression("sua_datecompleted", ConditionOperator.Null)
                     }
