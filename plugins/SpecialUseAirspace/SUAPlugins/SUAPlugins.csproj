@@ -93,6 +93,7 @@
     <Compile Include="AeronauticalMilestone\ProtectOutOfOrderUpdate.cs" />
     <Compile Include="AeronauticalMilestone\HandleRebaseRelatedMilestones.cs" />
     <Compile Include="AeronauticalMilestone\Utilities.cs" />
+    <Compile Include="AeronauticalMilestone\ValidateAeronauticalMilestone.cs" />
     <Compile Include="Aeronautical\HandleSupplementalRulemakingToggle.cs" />
     <Compile Include="Aeronautical\InitializeMilestonesOnFormalProposalDateUpdate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
