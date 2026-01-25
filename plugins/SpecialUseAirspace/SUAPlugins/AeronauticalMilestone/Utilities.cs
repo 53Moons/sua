@@ -497,7 +497,7 @@ namespace SUAPlugins.AeronauticalMilestone
 
             var aeroMilestoneQuery = new QueryExpression("sua_aeronauticalmilestone")
             {
-                ColumnSet = new ColumnSet("sua_baseline", "sua_datecompleted"),
+                ColumnSet = new ColumnSet(true),
                 Criteria =
                 {
                     Conditions =
@@ -511,20 +511,6 @@ namespace SUAPlugins.AeronauticalMilestone
                     }
                 },
                 Orders = { new OrderExpression("sua_baseline", OrderType.Ascending) }
-                //,
-                //LinkEntities =
-                //{
-                //    new LinkEntity
-                //    {
-                //        LinkFromEntityName = "sua_aeronauticalmilestone",
-                //        LinkFromAttributeName = "sua_milestone",
-                //        LinkToEntityName = "sua_milestone",
-                //        LinkToAttributeName = "sua_milestoneid",
-                //        Columns = new ColumnSet("sua_name", "sua_activeoffset"),
-                //        EntityAlias = "M",
-                //        Orders = { new OrderExpression("sua_activeoffset", OrderType.Ascending) }
-                //    }
-                //}
             };
 
             var aeroMilestones = service.RetrieveMultiple(aeroMilestoneQuery).Entities;
@@ -539,6 +525,34 @@ namespace SUAPlugins.AeronauticalMilestone
             aeroEntity["sua_lastmilestonebaseline"] = lastMilestone.GetAttributeValue<DateTime>(
                 "sua_baseline"
             );
+
+            var potentialDate = DateTime.UtcNow.AddDays(
+                (int)lastMilestone.GetAttributeValue<decimal>("sua_activeoffset")
+            );
+            var deadlineQuery = new QueryExpression("sua_deadline")
+            {
+                ColumnSet = new ColumnSet(true),
+                Criteria =
+                {
+                    Conditions =
+                    {
+                        new ConditionExpression(
+                            "sua_publicationdate",
+                            ConditionOperator.GreaterEqual,
+                            potentialDate
+                        )
+                    }
+                },
+                Orders = { new OrderExpression("sua_publicationdate", OrderType.Ascending) }
+            };
+            var deadlines = service.RetrieveMultiple(deadlineQuery).Entities;
+            if (deadlines.Count > 0)
+            {
+                aeroEntity["sua_possiblepublication"] = deadlines
+                    .OrderBy(d => d.GetAttributeValue<DateTime>("sua_publicationdate"))
+                    .First()
+                    .ToEntityReference();
+            }
 
             service.Update(aeroEntity);
         }
