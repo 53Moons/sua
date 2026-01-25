@@ -1,3 +1,5 @@
+import { HandleStateDateCompletedAnticipatedDelay } from "./HandleStateAnticipatedDelay";
+
 
 export function ControlAeronauticalMilestoneSubgridAttributeEdit(context: Xrm.Events.EventContext) {
     if (!context) {
@@ -18,5 +20,11 @@ export function ControlAeronauticalMilestoneSubgridAttributeEdit(context: Xrm.Ev
         control.setDisabled(shouldHide);
 
     });
+
+
+    const dateCompleted = entity.attributes.get("sua_datecompleted");
+    const anticipatedDelay = entity.attributes.get("sua_anticipateddelay");
+
+    HandleStateDateCompletedAnticipatedDelay(dateCompleted, anticipatedDelay);
 
 }
