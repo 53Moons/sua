@@ -89,8 +89,6 @@
   <ItemGroup>
     <Compile Include="Action\InitializeMilestonesOnUpdate.cs" />
     <Compile Include="Action\Utilities.cs" />
-    <Compile Include="AeronauticalMilestone\ProtectInvalidCompletionDate.cs" />
-    <Compile Include="AeronauticalMilestone\ProtectOutOfOrderUpdate.cs" />
     <Compile Include="AeronauticalMilestone\HandleRebaseRelatedMilestones.cs" />
     <Compile Include="AeronauticalMilestone\Utilities.cs" />
     <Compile Include="AeronauticalMilestone\ValidateAeronauticalMilestone.cs" />
