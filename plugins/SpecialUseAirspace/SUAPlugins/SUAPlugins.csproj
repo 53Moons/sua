@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Action\InitializeMilestonesOnUpdate.cs" />
+    <Compile Include="Action\InitializeRelatedRecordOnCreate.cs" />
     <Compile Include="Action\Utilities.cs" />
     <Compile Include="AeronauticalMilestone\HandleRebaseRelatedMilestones.cs" />
     <Compile Include="AeronauticalMilestone\Utilities.cs" />
