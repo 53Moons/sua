@@ -35,12 +35,15 @@ namespace SUAPlugins.Action
             if (context.Depth > 1) return;
             if ((context.MessageName != "Create" && context.MessageName != "Update") || context.Stage != 40)
                 return;
+
             try
             {
-                if (!context.InputParameters.Contains("Target") || !(context.InputParameters["Target"] is Entity targetEntity))
+                if (!context.InputParameters.Contains("Target") || !(context.InputParameters["Target"] is Entity))
                 {
                     throw new InvalidPluginExecutionException("Invalid execution context");
                 }
+
+                Entity targetEntity = (Entity)context.InputParameters["Target"];
 
                 // Get parent or exit
                 if (targetEntity.LogicalName != ParentEntity) return;
@@ -52,13 +55,14 @@ namespace SUAPlugins.Action
                 int nepaActionValue = nepaActionOptionSet.Value;
 
                 // Associate nepa action type with form so we can switch
-                string targetChildEntityName = nepaActionValue switch
+                // Updated to fix recursive pattern error - case labels const value, break to skip if not needed
+                string targetChildEntityName = string.Empty;
+                switch (nepaActionValue)
                 {
-                    EA => ChildEntityEA,
-                    EIS => ChildEntityEIS,
-                    CATEX => ChildEntityCATEX,
-                    _ => string.Empty
-                };
+                  case EA: targetChildEntityName =ChildEntityEA; break;
+                  case EIS: targetChildEntityName = ChildEntityEIS; break;
+                  case CATEX: targetChildEntityName = ChildEntityCATEX; break;                   
+                }
 
                 // Exit if its none of these (like NA)
                 if (string.IsNullOrEmpty(targetChildEntityName)) return;
